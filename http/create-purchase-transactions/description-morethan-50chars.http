@@ -1,0 +1,9 @@
+POST http://localhost:8080/api/purchases
+Content-Type: application/json
+X-Correlation-ID: 123f
+
+{
+    "description": "Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay Hotel Stay",
+    "transactionDate": "2026-03-10",
+    "purchaseAmount": 100.45
+}

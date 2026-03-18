@@ -1,0 +1,3 @@
+treasury:
+  api:
+    base-url: https://api.fiscaldata.treasury.gov
