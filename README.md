@@ -1,6 +1,6 @@
 # WEX Corporate Payments
 
-Production-oriented Java 21 / Spring Boot implementation of the WEX coding exercise.
+Java 21 / Spring Boot API implementation of the WEX corporate payments.
 
 ## What it does
 
