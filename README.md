@@ -107,6 +107,15 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 mvn -Dtest=CucumberTest test
 ```
 
+Generate a JaCoCo coverage report:
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+mvn org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent test org.jacoco:jacoco-maven-plugin:0.8.12:report
+```
+
+Open the generated report at `target/site/jacoco/index.html`.
+
 BDD feature files live under `src/test/resources/features`, and the executable Cucumber runner is `src/test/java/com/wex/payments/bdd/CucumberTest.java`.
 
 ## Design notes

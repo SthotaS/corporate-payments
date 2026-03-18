@@ -89,6 +89,105 @@ class ExchangeRateClientTest {
     }
 
     @Test
+    void ignoresMalformedAndOutOfRangeRowsAndReturnsLatestEligibleQuote() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(
+                        "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        {
+                          "data": [
+                            {
+                              "country_currency_desc": "Canada-Dollar",
+                              "exchange_rate": "1.5000",
+                              "record_date": "2026-04-30"
+                            },
+                            {
+                              "country_currency_desc": "Canada-Dollar",
+                              "exchange_rate": "1.1000",
+                              "record_date": "not-a-date"
+                            },
+                            {
+                              "country_currency_desc": "",
+                              "exchange_rate": "1.1500",
+                              "record_date": "2025-12-31"
+                            },
+                            {
+                              "country_currency_desc": "Canada-Dollar",
+                              "exchange_rate": "null",
+                              "record_date": "2025-12-31"
+                            },
+                            {
+                              "country_currency_desc": "Canada-Dollar",
+                              "exchange_rate": "oops",
+                              "record_date": "2025-12-15"
+                            },
+                            {
+                              "country_currency_desc": "Canada-Dollar",
+                              "exchange_rate": "1.3200",
+                              "record_date": "2025-08-31"
+                            },
+                            {
+                              "country_currency_desc": "Canada-Dollar",
+                              "exchange_rate": "1.4000",
+                              "record_date": "2025-12-31"
+                            }
+                          ]
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        ExchangeRateQuote quote = client.findExchangeRate("Canada-Dollar", LocalDate.of(2026, 3, 15)).orElseThrow();
+
+        assertThat(quote.exchangeRateDate()).isEqualTo(LocalDate.of(2025, 12, 31));
+        assertThat(quote.exchangeRate().toPlainString()).isEqualTo("1.4000");
+    }
+
+    @Test
+    void throwsWhenTreasuryResponseDoesNotContainDataArray() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(
+                        "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        {
+                          "meta": {
+                            "count": 0
+                          }
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> client.findExchangeRate("Canada-Dollar", LocalDate.of(2026, 3, 15)))
+                .isInstanceOf(UpstreamExchangeRateException.class)
+                .hasMessage("Treasury exchange-rate API returned an unexpected response");
+    }
+
+    @Test
+    void addsLeadingSlashWhenConfiguredPathDoesNotContainOne() {
+        RestClient.Builder builder = RestClient.builder()
+                .baseUrl("https://api.fiscaldata.treasury.gov/services/api/fiscal_service");
+        MockRestServiceServer localServer = MockRestServiceServer.bindTo(builder).build();
+        ExchangeRateClient localClient = new ExchangeRateClient(builder.build(), "v1/accounting/od/rates_of_exchange");
+
+        localServer.expect(requestTo(org.hamcrest.Matchers.startsWith(
+                        "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        {
+                          "data": []
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(localClient.findExchangeRate("Canada-Dollar", LocalDate.of(2026, 3, 15))).isEmpty();
+    }
+
+    @Test
+    void rejectsBlankConfiguredPath() {
+        RestClient restClient = RestClient.builder().build();
+
+        assertThatThrownBy(() -> new ExchangeRateClient(restClient, " "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("treasury.api.rates-of-exchange-path must not be blank");
+    }
+
+    @Test
     void wrapsUpstreamHttpErrors() {
         server.expect(requestTo(org.hamcrest.Matchers.startsWith(
                         "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
