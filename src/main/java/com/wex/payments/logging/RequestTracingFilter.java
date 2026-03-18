@@ -23,7 +23,7 @@ public class RequestTracingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         String traceId = resolveTraceId(request);
 
         MDC.put(LoggingConstants.TRACE_ID, traceId);
@@ -41,7 +41,7 @@ public class RequestTracingFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
-            long durationMs = System.currentTimeMillis() - startTime;
+            long durationMs = (System.nanoTime() - startTime) / 1_000_000;
             log.info("request completed method={} path={} status={} durationMs={}",
                     request.getMethod(),
                     request.getRequestURI(),
