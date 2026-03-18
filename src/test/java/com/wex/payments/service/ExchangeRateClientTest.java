@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
@@ -28,7 +29,7 @@ class ExchangeRateClientTest {
         RestClient.Builder builder = RestClient.builder()
                 .baseUrl("https://api.fiscaldata.treasury.gov/services/api/fiscal_service");
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new ExchangeRateClient(builder.build(), "/v1/accounting/od/rates_of_exchange");
+        client = new ExchangeRateClient(builder.build(), "/v1/accounting/od/rates_of_exchange", 3);
     }
 
     @Test
@@ -143,7 +144,7 @@ class ExchangeRateClientTest {
 
     @Test
     void throwsWhenTreasuryResponseDoesNotContainDataArray() {
-        server.expect(requestTo(org.hamcrest.Matchers.startsWith(
+        server.expect(ExpectedCount.times(3), requestTo(org.hamcrest.Matchers.startsWith(
                         "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
                 .andExpect(method(GET))
                 .andRespond(withSuccess("""
@@ -164,7 +165,7 @@ class ExchangeRateClientTest {
         RestClient.Builder builder = RestClient.builder()
                 .baseUrl("https://api.fiscaldata.treasury.gov/services/api/fiscal_service");
         MockRestServiceServer localServer = MockRestServiceServer.bindTo(builder).build();
-        ExchangeRateClient localClient = new ExchangeRateClient(builder.build(), "v1/accounting/od/rates_of_exchange");
+        ExchangeRateClient localClient = new ExchangeRateClient(builder.build(), "v1/accounting/od/rates_of_exchange", 3);
 
         localServer.expect(requestTo(org.hamcrest.Matchers.startsWith(
                         "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
@@ -182,14 +183,51 @@ class ExchangeRateClientTest {
     void rejectsBlankConfiguredPath() {
         RestClient restClient = RestClient.builder().build();
 
-        assertThatThrownBy(() -> new ExchangeRateClient(restClient, " "))
+        assertThatThrownBy(() -> new ExchangeRateClient(restClient, " ", 3))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("treasury.api.rates-of-exchange-path must not be blank");
     }
 
     @Test
-    void wrapsUpstreamHttpErrors() {
+    void rejectsInvalidMaxAttempts() {
+        RestClient restClient = RestClient.builder().build();
+
+        assertThatThrownBy(() -> new ExchangeRateClient(restClient, "/v1/accounting/od/rates_of_exchange", 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("treasury.api.max-attempts must be greater than 0");
+    }
+
+    @Test
+    void retriesUpstreamErrorsAndSucceedsOnThirdAttempt() {
+        server.expect(ExpectedCount.times(2), requestTo(org.hamcrest.Matchers.startsWith(
+                        "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
+                .andExpect(method(GET))
+                .andRespond(withStatus(NOT_FOUND));
+
         server.expect(requestTo(org.hamcrest.Matchers.startsWith(
+                        "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        {
+                          "data": [
+                            {
+                              "country_currency_desc": "Canada-Dollar",
+                              "exchange_rate": "1.4000",
+                              "record_date": "2025-12-31"
+                            }
+                          ]
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        ExchangeRateQuote quote = client.findExchangeRate("Canada-Dollar", LocalDate.of(2026, 3, 15)).orElseThrow();
+
+        assertThat(quote.exchangeRateDate()).isEqualTo(LocalDate.of(2025, 12, 31));
+        assertThat(quote.exchangeRate().toPlainString()).isEqualTo("1.4000");
+    }
+
+    @Test
+    void wrapsUpstreamHttpErrors() {
+        server.expect(ExpectedCount.times(3), requestTo(org.hamcrest.Matchers.startsWith(
                         "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
                 .andExpect(method(GET))
                 .andRespond(withStatus(NOT_FOUND));

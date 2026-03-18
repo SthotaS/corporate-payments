@@ -86,7 +86,7 @@ class PurchaseTransactionServiceTest {
         private Optional<ExchangeRateQuote> quote = Optional.empty();
 
         private StubExchangeRateClient() {
-            super(null, "/unused");
+            super(null, "/unused", 3);
         }
 
         @Override

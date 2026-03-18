@@ -14,7 +14,7 @@ class StubExchangeRateClient extends ExchangeRateClient {
     private final List<ExchangeRateQuote> quotes = new ArrayList<>();
 
     StubExchangeRateClient() {
-        super(null, "/unused");
+        super(null, "/unused", 3);
     }
 
     void reset() {

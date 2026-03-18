@@ -19,6 +19,9 @@ treasury:
   api:
     base-url: https://api.fiscaldata.treasury.gov
     rates-of-exchange-path: /services/api/fiscal_service/v1/accounting/od/rates_of_exchange
+    connect-timeout: 2s
+    read-timeout: 5s
+    max-attempts: 3
 
 server:
   error:
