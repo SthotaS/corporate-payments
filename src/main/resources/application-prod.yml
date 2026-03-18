@@ -3,6 +3,15 @@ logging:
     root: INFO
     com.wex.payments: INFO
 
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  h2:
+    console:
+      enabled: false
+
 treasury:
   api:
     base-url: https://api.fiscaldata.treasury.gov

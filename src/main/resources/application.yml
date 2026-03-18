@@ -6,21 +6,14 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-no-trace}] [%X{purchaseId:-no-purchase}] %logger{36} - %msg%n"
 
 spring:
-  datasource:
-    url: jdbc:h2:mem:corporatepayments;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
   jpa:
     open-in-view: false
-    hibernate:
-      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
   h2:
     console:
-      enabled: true
+      enabled: false
 
 treasury:
   api:

@@ -3,6 +3,19 @@ logging:
     root: INFO
     com.wex.payments: INFO
 
+spring:
+  datasource:
+    url: jdbc:h2:mem:corporatepayments;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+
 treasury:
   api:
     base-url: https://api.fiscaldata.treasury.gov
