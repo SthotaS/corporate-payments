@@ -89,7 +89,7 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 mvn test
 ```
 
-To manually test endpoints, trigger the request files under `http/` from your IDE HTTP client or REST client plugin.
+To manually test endpoints, trigger the request files under `http/` from your IDE HTTP client or REST client plugin. Start with `http/create-purchase-transactions/success.http`, then copy the returned purchase `id` into the GET request files under `http/get-purchase-tranactions/`.
 
 The H2 console is available at `/h2-console` for local development when the local profile is used.
 
