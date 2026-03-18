@@ -5,9 +5,11 @@ import com.wex.payments.constants.ValidationConstants;
 import com.wex.payments.dto.ConvertedPurchaseTransactionResponse;
 import com.wex.payments.dto.CreatePurchaseTransactionRequest;
 import com.wex.payments.dto.PurchaseTransactionResponse;
+import com.wex.payments.exception.InvalidCountryCurrencyException;
 import com.wex.payments.service.PurchaseTransactionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +43,18 @@ public class PurchaseTransactionController {
     @GetMapping("/{purchaseId}")
     public ConvertedPurchaseTransactionResponse getPurchaseInTargetCurrency(
             @PathVariable UUID purchaseId,
-            @RequestParam(ApiConstants.COUNTRY_CURRENCY_PARAM) @NotBlank(message = ValidationConstants.COUNTRY_CURRENCY_REQUIRED_MESSAGE) String countryCurrency) {
-        return purchaseTransactionService.getConvertedPurchase(purchaseId, countryCurrency.trim());
+            @RequestParam(ApiConstants.COUNTRY_CURRENCY_PARAM)
+            @NotBlank(message = ValidationConstants.COUNTRY_CURRENCY_REQUIRED_MESSAGE)
+            @Pattern(regexp = ValidationConstants.COUNTRY_CURRENCY_ALLOWED_PATTERN, message = ValidationConstants.COUNTRY_CURRENCY_INVALID_MESSAGE)
+            String countryCurrency) {
+        String trimmedCountryCurrency = trimCountryCurrency(countryCurrency);
+        if (!trimmedCountryCurrency.matches(ValidationConstants.COUNTRY_CURRENCY_ALLOWED_PATTERN)) {
+            throw new InvalidCountryCurrencyException();
+        }
+        return purchaseTransactionService.getConvertedPurchase(purchaseId, trimmedCountryCurrency);
+    }
+
+    private String trimCountryCurrency(String countryCurrency) {
+        return countryCurrency.trim();
     }
 }

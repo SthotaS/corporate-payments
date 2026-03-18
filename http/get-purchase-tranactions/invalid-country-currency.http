@@ -1,0 +1,4 @@
+GET http://localhost:8080/api/purchases/c5788945-9d60-4e6f-9cf0-2ea0f8272b12?countryCurrency=IndiaRupee
+Content-Type: application/json
+X-Correlation-ID: 123f
+

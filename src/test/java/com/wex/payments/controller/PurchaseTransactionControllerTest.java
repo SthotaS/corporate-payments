@@ -149,6 +149,47 @@ class PurchaseTransactionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.countryCurrency").value("Canada-Dollar"))
                 .andExpect(jsonPath("$.convertedAmount").value(25.97));
+
+        org.assertj.core.api.Assertions.assertThat(purchaseTransactionService.lastCountryCurrency).isEqualTo("Canada-Dollar");
+    }
+
+    @Test
+    void getPurchaseTrimsCountryCurrencyWhitespace() throws Exception {
+        UUID purchaseId = UUID.randomUUID();
+        purchaseTransactionService.convertedResponse = new ConvertedPurchaseTransactionResponse(
+                purchaseId,
+                "Taxi",
+                LocalDate.of(2026, 2, 10),
+                new BigDecimal("18.25"),
+                "Canada-Dollar",
+                LocalDate.of(2026, 1, 31),
+                new BigDecimal("1.4234"),
+                new BigDecimal("25.97")
+        );
+
+        mockMvc.perform(get("/api/purchases/{purchaseId}", purchaseId)
+                        .queryParam("countryCurrency", "  Canada-Dollar  "))
+                .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(purchaseTransactionService.lastCountryCurrency).isEqualTo("Canada-Dollar");
+    }
+
+    @Test
+    void getPurchaseRejectsCountryCurrencyWithUnsupportedCharacters() throws Exception {
+        mockMvc.perform(get("/api/purchases/{purchaseId}", UUID.randomUUID())
+                        .queryParam("countryCurrency", "Canada-Dollar,record_date:lte:9999-12-31"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("validation failed"))
+                .andExpect(jsonPath("$.details[0]").value("countryCurrency: countryCurrency must match Treasury country-currency format"));
+    }
+
+    @Test
+    void getPurchaseRejectsCountryCurrencyWithoutTreasuryHyphenFormat() throws Exception {
+        mockMvc.perform(get("/api/purchases/{purchaseId}", UUID.randomUUID())
+                        .queryParam("countryCurrency", "India Rupee"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("validation failed"))
+                .andExpect(jsonPath("$.details[0]").value("countryCurrency: countryCurrency must match Treasury country-currency format"));
     }
 
     @Test
@@ -167,6 +208,7 @@ class PurchaseTransactionControllerTest {
         private PurchaseTransactionResponse createResponse;
         private ConvertedPurchaseTransactionResponse convertedResponse;
         private RuntimeException conversionException;
+        private String lastCountryCurrency;
 
         private StubPurchaseTransactionService() {
             super(null, null);
@@ -182,6 +224,7 @@ class PurchaseTransactionControllerTest {
 
         @Override
         public ConvertedPurchaseTransactionResponse getConvertedPurchase(UUID purchaseId, String countryCurrency) {
+            lastCountryCurrency = countryCurrency;
             if (conversionException != null) {
                 throw conversionException;
             }

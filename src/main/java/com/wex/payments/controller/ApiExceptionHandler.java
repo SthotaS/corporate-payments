@@ -5,6 +5,7 @@ import com.wex.payments.constants.ApiConstants;
 import com.wex.payments.constants.ValidationConstants;
 import com.wex.payments.dto.ApiErrorResponse;
 import com.wex.payments.exception.CurrencyConversionNotAvailableException;
+import com.wex.payments.exception.InvalidCountryCurrencyException;
 import com.wex.payments.exception.PurchaseNotFoundException;
 import com.wex.payments.exception.UpstreamExchangeRateException;
 import jakarta.validation.ConstraintViolationException;
@@ -108,6 +109,12 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException exception) {
         log.warn("illegal argument encountered message={}", exception.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.VALIDATION_FAILED_MESSAGE, List.of("transactionDate: " + exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCountryCurrencyException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCountryCurrency(InvalidCountryCurrencyException exception) {
+        log.warn("invalid countryCurrency encountered message={}", exception.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.VALIDATION_FAILED_MESSAGE, List.of(exception.getMessage()));
     }
 
     private String formatFieldError(FieldError fieldError) {

@@ -10,6 +10,8 @@ public final class ValidationConstants {
     public static final String PURCHASE_AMOUNT_REQUIRED_MESSAGE = "purchaseAmount is required";
     public static final String PURCHASE_AMOUNT_POSITIVE_MESSAGE = "must be positive";
     public static final String COUNTRY_CURRENCY_REQUIRED_MESSAGE = "countryCurrency is required";
+    public static final String COUNTRY_CURRENCY_INVALID_MESSAGE = "countryCurrency must match Treasury country-currency format";
+    public static final String COUNTRY_CURRENCY_ALLOWED_PATTERN = "^[A-Za-z0-9 .()'&/]+-[A-Za-z0-9 .()'&/]+$";
 
     private ValidationConstants() {
     }
