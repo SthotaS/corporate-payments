@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -82,6 +83,9 @@ public class ExchangeRateClient {
                         maxAttempts,
                         exception);
                 lastFailure = new UpstreamExchangeRateException(TreasuryConstants.REQUEST_FAILED_MESSAGE, exception);
+                if (!isRetryable(exception)) {
+                    break;
+                }
             }
 
             if (attempt < maxAttempts) {
@@ -178,6 +182,13 @@ public class ExchangeRateClient {
             throw new IllegalArgumentException("treasury.api.max-attempts must be greater than 0");
         }
         return configuredMaxAttempts;
+    }
+
+    private boolean isRetryable(RestClientException exception) {
+        if (exception instanceof RestClientResponseException responseException) {
+            return responseException.getStatusCode().is5xxServerError();
+        }
+        return true;
     }
 
     private LocalDate parseRecordDate(String rawValue) {

@@ -26,3 +26,17 @@ treasury:
 server:
   error:
     include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-components: always
+      group:
+        readiness:
+          include: readinessState,db,treasuryApi

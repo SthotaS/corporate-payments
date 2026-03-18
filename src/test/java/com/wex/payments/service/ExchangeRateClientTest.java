@@ -18,6 +18,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 class ExchangeRateClientTest {
 
@@ -202,7 +203,7 @@ class ExchangeRateClientTest {
         server.expect(ExpectedCount.times(2), requestTo(org.hamcrest.Matchers.startsWith(
                         "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
                 .andExpect(method(GET))
-                .andRespond(withStatus(NOT_FOUND));
+                .andRespond(withStatus(INTERNAL_SERVER_ERROR));
 
         server.expect(requestTo(org.hamcrest.Matchers.startsWith(
                         "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
@@ -226,8 +227,8 @@ class ExchangeRateClientTest {
     }
 
     @Test
-    void wrapsUpstreamHttpErrors() {
-        server.expect(ExpectedCount.times(3), requestTo(org.hamcrest.Matchers.startsWith(
+    void doesNotRetryNonRetryableClientErrors() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(
                         "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/rates_of_exchange")))
                 .andExpect(method(GET))
                 .andRespond(withStatus(NOT_FOUND));

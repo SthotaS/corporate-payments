@@ -91,6 +91,43 @@ mvn test
 
 The H2 console is available at `/h2-console` while the app is running.
 
+## Health checks
+
+The application exposes Spring Boot Actuator health endpoints for the database and Treasury upstream API.
+
+Available endpoints:
+
+- `GET /actuator/health`
+- `GET /actuator/health/readiness`
+- `GET /actuator/info`
+
+Example aggregate health response:
+
+```json
+{
+  "status": "UP",
+  "components": {
+    "db": {
+      "status": "UP"
+    },
+    "treasuryApi": {
+      "status": "UP",
+      "details": {
+        "upstream": "Treasury Reporting Rates API",
+        "statusCode": 200
+      }
+    }
+  }
+}
+```
+
+You can verify locally after starting the app:
+
+```bash
+curl http://localhost:8080/actuator/health
+curl http://localhost:8080/actuator/health/readiness
+```
+
 ## Running tests
 
 Run the full test suite:
