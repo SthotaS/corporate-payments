@@ -117,80 +117,67 @@ BDD feature files live under `src/test/resources/features`, and the executable C
 
 ## Folder structure
 
-### Root
-
-- `pom.xml`: Maven build, dependencies, and test runner configuration.
-- `README.md`: Project overview, setup, test instructions, and structure reference.
-
-### Main application code
-
-- `src/main/java/com/wex/payments/CorporatePaymentsApplication.java`: Spring Boot entry point.
-
-### Configuration
-
-- `src/main/java/com/wex/payments/config/RestClientConfiguration.java`: Creates the `RestClient` used for Treasury API calls.
-
-### Constants
-
-- `src/main/java/com/wex/payments/constants/ApiConstants.java`: Centralizes API route and response message constants.
-- `src/main/java/com/wex/payments/constants/TreasuryConstants.java`: Holds Treasury API field names, date rules, and integration constants.
-- `src/main/java/com/wex/payments/constants/ValidationConstants.java`: Contains validation error messages shared across the API.
-
-### Controllers
-
-- `src/main/java/com/wex/payments/controller/ApiExceptionHandler.java`: Maps exceptions into consistent HTTP error responses.
-- `src/main/java/com/wex/payments/controller/PurchaseTransactionController.java`: Exposes create and retrieve purchase REST endpoints.
-
-### Domain
-
-- `src/main/java/com/wex/payments/domain/PurchaseTransaction.java`: JPA entity representing a stored purchase transaction.
-
-### DTOs
-
-- `src/main/java/com/wex/payments/dto/ApiErrorResponse.java`: Response model for API error payloads.
-- `src/main/java/com/wex/payments/dto/ConvertedPurchaseTransactionResponse.java`: Response model for converted purchase retrieval.
-- `src/main/java/com/wex/payments/dto/CreatePurchaseTransactionRequest.java`: Request model for creating a purchase transaction.
-- `src/main/java/com/wex/payments/dto/PurchaseTransactionResponse.java`: Response model for a stored purchase transaction.
-
-### Exceptions
-
-- `src/main/java/com/wex/payments/exception/CurrencyConversionNotAvailableException.java`: Signals that no eligible exchange rate exists for conversion.
-- `src/main/java/com/wex/payments/exception/PurchaseNotFoundException.java`: Signals that the requested purchase id does not exist.
-- `src/main/java/com/wex/payments/exception/UpstreamExchangeRateException.java`: Signals a Treasury API failure or malformed upstream response.
-
-### Repository
-
-- `src/main/java/com/wex/payments/repository/PurchaseTransactionRepository.java`: Spring Data JPA repository for purchase persistence.
-
-### Services
-
-- `src/main/java/com/wex/payments/service/ExchangeRateClient.java`: Fetches and filters Treasury exchange rates.
-- `src/main/java/com/wex/payments/service/ExchangeRateQuote.java`: Immutable value object for a selected exchange rate.
-- `src/main/java/com/wex/payments/service/PurchaseTransactionService.java`: Applies business rules for storing and converting purchases.
-
-### Application configuration files
-
-- `src/main/resources/application.yml`: Default Spring Boot, H2, and Treasury API configuration.
-- `src/main/resources/application-local.yml`: Local-environment overrides.
-- `src/main/resources/application-preprod.yml`: Pre-production environment overrides.
-- `src/main/resources/application-prod.yml`: Production environment overrides.
-
-### Unit and controller tests
-
-- `src/test/java/com/wex/payments/controller/PurchaseTransactionControllerTest.java`: Verifies controller request validation and HTTP responses.
-- `src/test/java/com/wex/payments/service/ExchangeRateClientTest.java`: Verifies Treasury response parsing and exchange-rate selection logic.
-- `src/test/java/com/wex/payments/service/PurchaseTransactionServiceTest.java`: Verifies purchase storage, rounding, and conversion behavior.
-
-### BDD / Cucumber test support
-
-- `src/test/java/com/wex/payments/bdd/BddScenarioContext.java`: Stores per-scenario request and response state for step definitions.
-- `src/test/java/com/wex/payments/bdd/BddTestConfiguration.java`: Registers test-only beans used by the BDD suite.
-- `src/test/java/com/wex/payments/bdd/CucumberSpringConfiguration.java`: Boots the Spring test context for Cucumber scenarios.
-- `src/test/java/com/wex/payments/bdd/CucumberTest.java`: JUnit Platform suite that runs all Gherkin feature files.
-- `src/test/java/com/wex/payments/bdd/PurchaseTransactionBddSteps.java`: Implements the Gherkin steps against the real API and database.
-- `src/test/java/com/wex/payments/bdd/StubExchangeRateClient.java`: Test double for deterministic exchange-rate scenarios.
-
-### Gherkin feature files
-
-- `src/test/resources/features/store_purchase_transaction.feature`: BDD scenarios for purchase creation and validation rules.
-- `src/test/resources/features/retrieve_converted_purchase_transaction.feature`: BDD scenarios for converted retrieval and exchange-rate rules.
+```text
+corporate-payments/
+├── pom.xml                                      # Maven build and dependencies
+├── README.md                                    # Project overview and setup notes
+├── src/main/java/com/wex/payments/
+│   ├── CorporatePaymentsApplication.java        # Spring Boot entry point
+│   ├── config/
+│   │   └── RestClientConfiguration.java         # Treasury RestClient bean
+│   ├── constants/
+│   │   ├── ApiConstants.java                    # API route and message constants
+│   │   ├── TreasuryConstants.java               # Treasury integration constants
+│   │   └── ValidationConstants.java             # Validation messages
+│   ├── controller/
+│   │   ├── ApiExceptionHandler.java             # Global exception-to-response mapping
+│   │   └── PurchaseTransactionController.java   # REST endpoints
+│   ├── domain/
+│   │   └── PurchaseTransaction.java             # Purchase JPA entity
+│   ├── dto/
+│   │   ├── ApiErrorResponse.java                # Error response payload
+│   │   ├── ConvertedPurchaseTransactionResponse.java
+│   │   │                                         # Converted purchase response
+│   │   ├── CreatePurchaseTransactionRequest.java
+│   │   │                                         # Create purchase request
+│   │   └── PurchaseTransactionResponse.java     # Stored purchase response
+│   ├── exception/
+│   │   ├── CurrencyConversionNotAvailableException.java
+│   │   │                                         # Missing conversion rate error
+│   │   ├── PurchaseNotFoundException.java       # Purchase not found error
+│   │   └── UpstreamExchangeRateException.java   # Treasury upstream error
+│   ├── logging/
+│   │   ├── LoggingConstants.java                # MDC and trace header keys
+│   │   └── RequestTracingFilter.java            # Trace ID and request lifecycle logging
+│   ├── repository/
+│   │   └── PurchaseTransactionRepository.java   # JPA repository
+│   └── service/
+│       ├── ExchangeRateClient.java              # Treasury exchange-rate lookup
+│       ├── ExchangeRateQuote.java               # Selected exchange-rate value object
+│       └── PurchaseTransactionService.java      # Core business logic
+├── src/main/resources/
+│   ├── application.yml                          # Default app and logging config
+│   ├── application-local.yml                    # Local overrides
+│   ├── application-preprod.yml                  # Preprod overrides
+│   └── application-prod.yml                     # Prod overrides
+└── src/test/
+    ├── java/com/wex/payments/
+    │   ├── bdd/
+    │   │   ├── BddScenarioContext.java          # Scenario state holder
+    │   │   ├── BddTestConfiguration.java        # BDD test beans
+    │   │   ├── CucumberSpringConfiguration.java # Spring context for Cucumber
+    │   │   ├── CucumberTest.java                # BDD test runner
+    │   │   ├── PurchaseTransactionBddSteps.java # Gherkin step definitions
+    │   │   └── StubExchangeRateClient.java      # Test double for Treasury calls
+    │   ├── controller/
+    │   │   └── PurchaseTransactionControllerTest.java
+    │   │                                         # Controller tests
+    │   └── service/
+    │       ├── ExchangeRateClientTest.java      # Exchange-rate client tests
+    │       └── PurchaseTransactionServiceTest.java
+    │                                                 # Service tests
+    └── resources/features/
+        ├── retrieve_converted_purchase_transaction.feature
+        │                                         # BDD scenarios for conversion retrieval
+        └── store_purchase_transaction.feature    # BDD scenarios for purchase creation
+```
