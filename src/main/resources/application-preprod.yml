@@ -1,3 +1,8 @@
+logging:
+  level:
+    root: INFO
+    com.wex.payments: INFO
+
 treasury:
   api:
     base-url: https://api.fiscaldata.treasury.gov

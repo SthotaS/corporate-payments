@@ -1,3 +1,10 @@
+logging:
+  level:
+    root: INFO
+    com.wex.payments: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-no-trace}] [%X{purchaseId:-no-purchase}] %logger{36} - %msg%n"
+
 spring:
   datasource:
     url: jdbc:h2:mem:corporatepayments;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE

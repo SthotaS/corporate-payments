@@ -8,6 +8,8 @@ import com.wex.payments.exception.CurrencyConversionNotAvailableException;
 import com.wex.payments.exception.PurchaseNotFoundException;
 import com.wex.payments.exception.UpstreamExchangeRateException;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,11 +25,15 @@ import java.util.List;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationException(MethodArgumentNotValidException exception) {
         List<String> details = exception.getBindingResult().getFieldErrors().stream()
                 .map(this::formatFieldError)
                 .toList();
+
+        log.warn("request validation failed details={}", details);
 
         return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.VALIDATION_FAILED_MESSAGE, details);
     }
@@ -37,6 +43,8 @@ public class ApiExceptionHandler {
         List<String> details = exception.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .toList();
+
+        log.warn("constraint validation failed details={}", details);
 
         return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.VALIDATION_FAILED_MESSAGE, details);
     }
@@ -52,15 +60,18 @@ public class ApiExceptionHandler {
                     .orElse("");
 
             if ("transactionDate".equals(fieldName)) {
+                log.warn("request body date format invalid field={}", fieldName);
                 return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.VALIDATION_FAILED_MESSAGE, List.of(ValidationConstants.TRANSACTION_DATE_INVALID_FORMAT_DETAIL));
             }
         }
 
         DateTimeParseException dateTimeParseException = findCause(exception, DateTimeParseException.class);
         if (dateTimeParseException != null || cause.getMessage().contains("LocalDate")) {
+            log.warn("request body contains invalid LocalDate payload");
             return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.VALIDATION_FAILED_MESSAGE, List.of(ValidationConstants.TRANSACTION_DATE_INVALID_FORMAT_DETAIL));
         }
 
+        log.warn("request body parsing failed cause={}", cause.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.REQUEST_BODY_PARSE_FAILED_MESSAGE, List.of(cause.getMessage()));
     }
 
@@ -77,21 +88,25 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(PurchaseNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(PurchaseNotFoundException exception) {
+        log.warn("purchase lookup failed message={}", exception.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage(), List.of());
     }
 
     @ExceptionHandler(CurrencyConversionNotAvailableException.class)
     public ResponseEntity<ApiErrorResponse> handleConversionUnavailable(CurrencyConversionNotAvailableException exception) {
+        log.warn("purchase conversion unavailable message={}", exception.getMessage());
         return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage(), List.of());
     }
 
     @ExceptionHandler(UpstreamExchangeRateException.class)
     public ResponseEntity<ApiErrorResponse> handleUpstreamFailure(UpstreamExchangeRateException exception) {
+        log.error("upstream treasury exchange rate failure", exception);
         return buildResponse(HttpStatus.BAD_GATEWAY, exception.getMessage(), List.of());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException exception) {
+        log.warn("illegal argument encountered message={}", exception.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ApiConstants.VALIDATION_FAILED_MESSAGE, List.of("transactionDate: " + exception.getMessage()));
     }
 

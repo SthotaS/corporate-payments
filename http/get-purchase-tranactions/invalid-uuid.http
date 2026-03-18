@@ -1,0 +1,4 @@
+GET http://localhost:8080/api/purchases/invalid-uuid?countryCurrency=India-Rupee
+Content-Type: application/json
+X-Correlation-ID: 123f
+
