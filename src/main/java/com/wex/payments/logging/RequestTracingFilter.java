@@ -25,6 +25,8 @@ public class RequestTracingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         long startTime = System.nanoTime();
         String traceId = resolveTraceId(request);
+        String previousTraceId = MDC.get(LoggingConstants.TRACE_ID);
+        String previousPurchaseId = MDC.get(LoggingConstants.PURCHASE_ID);
 
         MDC.put(LoggingConstants.TRACE_ID, traceId);
         response.setHeader(LoggingConstants.TRACE_HEADER, traceId);
@@ -47,12 +49,21 @@ public class RequestTracingFilter extends OncePerRequestFilter {
                     request.getRequestURI(),
                     response.getStatus(),
                     durationMs);
-            MDC.clear();
+            restoreMdcValue(LoggingConstants.TRACE_ID, previousTraceId);
+            restoreMdcValue(LoggingConstants.PURCHASE_ID, previousPurchaseId);
         }
     }
 
     private String resolveTraceId(HttpServletRequest request) {
         String incomingTraceId = request.getHeader(LoggingConstants.TRACE_HEADER);
         return StringUtils.hasText(incomingTraceId) ? incomingTraceId.trim() : UUID.randomUUID().toString();
+    }
+
+    private void restoreMdcValue(String key, String previousValue) {
+        if (previousValue == null) {
+            MDC.remove(key);
+        } else {
+            MDC.put(key, previousValue);
+        }
     }
 }

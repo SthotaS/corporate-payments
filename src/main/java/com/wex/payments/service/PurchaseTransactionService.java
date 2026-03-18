@@ -59,60 +59,78 @@ public class PurchaseTransactionService {
                 transaction.getPurchaseAmountUsd());
 
         PurchaseTransaction savedTransaction = repository.save(transaction);
-        MDC.put(LoggingConstants.PURCHASE_ID, savedTransaction.getId().toString());
-        log.info("purchase stored successfully purchaseId={} normalizedAmount={}",
-                savedTransaction.getId(),
-                savedTransaction.getPurchaseAmountUsd());
-        return new PurchaseTransactionResponse(
-                savedTransaction.getId(),
-                savedTransaction.getDescription(),
-                savedTransaction.getTransactionDate(),
-                savedTransaction.getPurchaseAmountUsd()
-        );
+        String previousPurchaseId = MDC.get(LoggingConstants.PURCHASE_ID);
+        try {
+            MDC.put(LoggingConstants.PURCHASE_ID, savedTransaction.getId().toString());
+            log.info("purchase stored successfully purchaseId={} normalizedAmount={}",
+                    savedTransaction.getId(),
+                    savedTransaction.getPurchaseAmountUsd());
+            return new PurchaseTransactionResponse(
+                    savedTransaction.getId(),
+                    savedTransaction.getDescription(),
+                    savedTransaction.getTransactionDate(),
+                    savedTransaction.getPurchaseAmountUsd()
+            );
+        } finally {
+            restoreMdcValue(LoggingConstants.PURCHASE_ID, previousPurchaseId);
+        }
     }
 
     @Transactional(readOnly = true)
     public ConvertedPurchaseTransactionResponse getConvertedPurchase(UUID purchaseId, String countryCurrency) {
-        MDC.put(LoggingConstants.PURCHASE_ID, purchaseId.toString());
-        log.info("retrieving converted purchase purchaseId={} targetCurrency={}", purchaseId, countryCurrency);
+        String previousPurchaseId = MDC.get(LoggingConstants.PURCHASE_ID);
+        try {
+            MDC.put(LoggingConstants.PURCHASE_ID, purchaseId.toString());
+            log.info("retrieving converted purchase purchaseId={} targetCurrency={}", purchaseId, countryCurrency);
 
-        PurchaseTransaction transaction = repository.findById(purchaseId)
-                .orElseThrow(() -> new PurchaseNotFoundException(purchaseId));
+            PurchaseTransaction transaction = repository.findById(purchaseId)
+                    .orElseThrow(() -> new PurchaseNotFoundException(purchaseId));
 
-        log.debug("loaded purchase purchaseId={} transactionDate={} amountUsd={} description='{}'",
-                transaction.getId(),
-                transaction.getTransactionDate(),
-                transaction.getPurchaseAmountUsd(),
-                transaction.getDescription());
+            log.debug("loaded purchase purchaseId={} transactionDate={} amountUsd={} description='{}'",
+                    transaction.getId(),
+                    transaction.getTransactionDate(),
+                    transaction.getPurchaseAmountUsd(),
+                    transaction.getDescription());
 
-        ExchangeRateQuote quote = exchangeRateClient.findExchangeRate(countryCurrency, transaction.getTransactionDate())
-                .orElseThrow(() -> new CurrencyConversionNotAvailableException(countryCurrency, transaction.getTransactionDate()));
+            ExchangeRateQuote quote = exchangeRateClient.findExchangeRate(countryCurrency, transaction.getTransactionDate())
+                    .orElseThrow(() -> new CurrencyConversionNotAvailableException(countryCurrency, transaction.getTransactionDate()));
 
-        BigDecimal convertedAmount = transaction.getPurchaseAmountUsd()
-                .multiply(quote.exchangeRate())
-                .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal convertedAmount = transaction.getPurchaseAmountUsd()
+                    .multiply(quote.exchangeRate())
+                    .setScale(2, RoundingMode.HALF_UP);
 
-        log.debug("conversion calculation purchaseId={} amountUsd={} exchangeRate={} convertedAmount={}",
-                transaction.getId(),
-                transaction.getPurchaseAmountUsd(),
-                quote.exchangeRate(),
-                convertedAmount);
+            log.debug("conversion calculation purchaseId={} amountUsd={} exchangeRate={} convertedAmount={}",
+                    transaction.getId(),
+                    transaction.getPurchaseAmountUsd(),
+                    quote.exchangeRate(),
+                    convertedAmount);
 
-        log.info("purchase conversion successful purchaseId={} exchangeRateDate={} exchangeRate={} convertedAmount={}",
-                transaction.getId(),
-                quote.exchangeRateDate(),
-                quote.exchangeRate(),
-                convertedAmount);
+            log.info("purchase conversion successful purchaseId={} exchangeRateDate={} exchangeRate={} convertedAmount={}",
+                    transaction.getId(),
+                    quote.exchangeRateDate(),
+                    quote.exchangeRate(),
+                    convertedAmount);
 
-        return new ConvertedPurchaseTransactionResponse(
-                transaction.getId(),
-                transaction.getDescription(),
-                transaction.getTransactionDate(),
-                transaction.getPurchaseAmountUsd(),
-                quote.countryCurrency(),
-                quote.exchangeRateDate(),
-                quote.exchangeRate(),
-                convertedAmount
-        );
+            return new ConvertedPurchaseTransactionResponse(
+                    transaction.getId(),
+                    transaction.getDescription(),
+                    transaction.getTransactionDate(),
+                    transaction.getPurchaseAmountUsd(),
+                    quote.countryCurrency(),
+                    quote.exchangeRateDate(),
+                    quote.exchangeRate(),
+                    convertedAmount
+            );
+        } finally {
+            restoreMdcValue(LoggingConstants.PURCHASE_ID, previousPurchaseId);
+        }
+    }
+
+    private void restoreMdcValue(String key, String previousValue) {
+        if (previousValue == null) {
+            MDC.remove(key);
+        } else {
+            MDC.put(key, previousValue);
+        }
     }
 }
