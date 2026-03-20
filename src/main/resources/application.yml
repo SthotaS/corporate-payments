@@ -7,13 +7,14 @@ logging:
 
 spring:
   jpa:
+    hibernate:
+      ddl-auto: validate
     open-in-view: false
     properties:
       hibernate:
         format_sql: true
-  h2:
-    console:
-      enabled: false
+  flyway:
+    enabled: true
 
 treasury:
   api:

@@ -5,7 +5,8 @@ Java 21 / Spring Boot API implementation of the WEX corporate payments.
 ## What it does
 
 - Stores a purchase transaction with validation for description length, date format, and positive USD amount.
-- Persists transactions locally with an embedded database for development, while higher environments are configured for external database settings.
+- Persists transactions in PostgreSQL for local and higher environments, while automated tests use an isolated in-memory database profile.
+- Applies schema changes through Flyway migrations before the application starts.
 - Retrieves a stored purchase converted to a Treasury-supported `countryCurrency` using the latest exchange rate on or before the purchase date within the prior 6 months.
 - Returns clear API errors for validation failures, missing purchases, unavailable conversions, and Treasury API issues.
 
@@ -16,7 +17,7 @@ flowchart LR
     Client["API Client"] --> Controller["PurchaseTransactionController"]
     Controller --> Service["PurchaseTransactionService"]
     Service --> Repo["PurchaseTransactionRepository"]
-    Repo --> H2["H2 Database"]
+    Repo --> Postgres["PostgreSQL"]
     Service --> Treasury["ExchangeRateClient"]
     Treasury --> Fiscal["Treasury Reporting Rates API"]
     Controller --> Errors["ApiExceptionHandler"]
@@ -68,18 +69,24 @@ Response:
 
 ## Running locally
 
-Set `JAVA_HOME` to your installed JDK 21, then run:
+Start PostgreSQL with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+Set `JAVA_HOME` to your installed JDK 21, then run the application with the `local` profile:
 
 ```bash
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 If Maven Wrapper is not present, use:
 
 ```bash
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 Run tests:
@@ -91,7 +98,15 @@ mvn test
 
 To manually test endpoints, trigger the request files under `http/` from your IDE HTTP client or REST client plugin. Start with `http/create-purchase-transactions/success.http`, then copy the returned purchase `id` into the GET request files under `http/get-purchase-tranactions/`.
 
-The H2 console is available at `/h2-console` for local development when the local profile is used.
+The local profile connects to PostgreSQL at `localhost:5432` by default using:
+
+- database: `corporate_payments`
+- username: `corporate_payments`
+- password: `corporate_payments`
+
+Override those settings with `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` if needed.
+Flyway runs automatically on startup to create or update the schema, and Hibernate validates that the mapped tables match the migration-managed schema.
+Docker Compose provisions PostgreSQL only; application tables are created by Flyway in the `public` schema.
 
 ## Health checks
 
@@ -156,12 +171,14 @@ mvn org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent test org.jacoco:jacoco-m
 Then open the generated HTML report at `target/site/jacoco/index.html`.
 
 BDD feature files live under `src/test/resources/features`, and the executable Cucumber runner is `src/test/java/com/wex/payments/bdd/CucumberTest.java`.
+The automated test suite uses the `test` Spring profile with H2 so tests remain fast and do not require Docker.
 
 ## Design notes
 
 - `countryCurrency` is intentionally modeled after Treasury’s `country_currency_desc` field and should be provided in Treasury-style `Country-Currency` format such as `India-Rupee`.
 - Exchange rate lookup uses the latest rate whose record month is on or before the purchase date and within the preceding 6 months.
 - Purchase amounts are normalized to two decimal places with half-up rounding before persistence.
+- Database schema is versioned in Flyway migration scripts under `src/main/resources/db/migration`.
 
 ## Folder structure
 
