@@ -1,4 +1,4 @@
-# WEX Corporate Payments
+# Corporate Payments
 
 Java 21 / Spring Boot API implementation of the WEX corporate payments.
 
